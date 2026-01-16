@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator gęstości energii lasera CO₂</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            padding: 24px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+        
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .header svg {
+            width: 32px;
+            height: 32px;
+            color: #2563eb;
+        }
+        
+        h1 {
+            font-size: 24px;
+            color: #1f2937;
+        }
+        
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .results {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 24px;
+        }
+        
+        .results h2 {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #bfdbfe;
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: #374151;
+        }
+        
+        .result-value {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .result-highlight {
+            background: #dbeafe;
+            padding: 12px 16px;
+            border-radius: 6px;
+        }
+        
+        .result-highlight .result-label {
+            color: #1e40af;
+            font-weight: 600;
+        }
+        
+        .result-highlight .result-value {
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+        
+        .visualization {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+        }
+        
+        .visualization h2 {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+        
+        svg {
+            display: block;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .info-box {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .info-box p {
+            font-size: 14px;
+            color: #4b5563;
+            margin-bottom: 8px;
+        }
+        
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .formula-box {
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 16px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        
+        .formula-box p {
+            margin-bottom: 8px;
+        }
+        
+        .formula-box .note {
+            font-size: 12px;
+            margin-top: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                <h1>Kalkulator gęstości energii lasera CO₂</h1>
+            </div>
+            
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="power">Moc lasera P [W]</label>
+                    <input type="number" id="power" value="100" step="0.1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="beamDiameter">Średnica wiązki D [mm]</label>
+                    <input type="number" id="beamDiameter" value="10" step="0.1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="focalLength">Ogniskowa soczewki f [cal]</label>
+                    <input type="number" id="focalLength" value="5" step="0.1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="wavelength">Długość fali λ [μm]</label>
+                    <input type="number" id="wavelength" value="10.6" step="0.1">
+                </div>
+                
+                <div class="input-group">
+                    <label for="m2">Parametr jakości wiązki M²</label>
+                    <input type="number" id="m2" value="1.05" step="0.01">
+                </div>
+            </div>
+            
+            <div class="results" id="results">
+                <h2>Wyniki obliczeń</h2>
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+        
+        <div class="card visualization">
+            <h2>Wizualizacja głębi ostrości</h2>
+            <svg viewBox="0 0 400 600" id="visualization">
+                <!-- Zawartość będzie generowana dynamicznie -->
+            </svg>
+            
+            <div class="info-box">
+                <p style="font-weight: 600; margin-bottom: 8px;">Interpretacja:</p>
+                <p>Głębia ostrości to zakres odległości wzdłuż osi optycznej, w którym średnica wiązki zwiększa się maksymalnie √2 razy względem średnicy w ognisku. W tej strefie gęstość energii spada do około 50% wartości maksymalnej.</p>
+            </div>
+        </div>
+        
+        <div class="card formula-box">
+            <p style="font-weight: 600; margin-bottom: 8px;">Wzory:</p>
+            <p>d = (4 × M² × λ × f) / (π × D) — średnica plamki</p>
+            <p>A = π × (d/2)² — powierzchnia plamki</p>
+            <p>I = P / A — gęstość energii</p>
+            <p>DOF = (8 × M² × λ × f²) / (π × D²) — głębia ostrości</p>
+            <p class="note">
+                gdzie: d – średnica plamki, λ – długość fali, f – ogniskowa, D – średnica wiązki, 
+                M² – parametr jakości wiązki, A – powierzchnia, I – gęstość energii, DOF – głębia ostrości
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        function calculate() {
+            const P = parseFloat(document.getElementById('power').value);
+            const D = parseFloat(document.getElementById('beamDiameter').value);
+            const fInch = parseFloat(document.getElementById('focalLength').value);
+            const lambda = parseFloat(document.getElementById('wavelength').value);
+            const M2 = parseFloat(document.getElementById('m2').value);
+            
+            if (isNaN(P) || isNaN(D) || isNaN(fInch) || isNaN(lambda) || isNaN(M2) || 
+                P <= 0 || D <= 0 || fInch <= 0 || lambda <= 0 || M2 <= 0) {
+                return null;
+            }
+            
+            const f = fInch * 25.4;
+            const lambdaMm = lambda / 1000;
+            const spotDiameter = (4 * M2 * lambdaMm * f) / (Math.PI * D);
+            const spotRadius = spotDiameter / 2;
+            const spotArea = Math.PI * Math.pow(spotRadius, 2);
+            const energyDensity = P / spotArea;
+            const depthOfFocus = (8 * M2 * lambdaMm * Math.pow(f, 2)) / (Math.PI * Math.pow(D, 2));
+            
+            return {
+                spotDiameter: spotDiameter.toFixed(3),
+                spotArea: spotArea.toFixed(4),
+                energyDensity: energyDensity.toFixed(2),
+                energyDensityKW: (energyDensity / 1000).toFixed(3),
+                depthOfFocus: depthOfFocus.toFixed(3)
+            };
+        }
+        
+        function updateResults() {
+            const results = calculate();
+            
+            if (!results) return;
+            
+            const html = `
+                <div class="result-row">
+                    <span class="result-label">Średnica plamki w ognisku:</span>
+                    <span class="result-value">${results.spotDiameter} mm</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Powierzchnia plamki:</span>
+                    <span class="result-value">${results.spotArea} mm²</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Gęstość energii:</span>
+                    <span class="result-value">${results.energyDensity} W/mm²</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label">Gęstość energii:</span>
+                    <span class="result-value">${results.energyDensityKW} kW/mm²</span>
+                </div>
+                <div class="result-row">
+                    <span class="result-label" style="font-weight: 600;">Głębia ostrości:</span>
+                    <span class="result-value">${results.depthOfFocus} mm</span>
+                </div>
+            `;
+            
+            document.getElementById('resultsContent').innerHTML = html;
+            updateVisualization(results);
+        }
+        
+        function updateVisualization(results) {
+            const svg = document.getElementById('visualization');
+            svg.innerHTML = `
+                <line x1="200" y1="50" x2="200" y2="550" stroke="#9CA3AF" stroke-width="1" stroke-dasharray="4 4" />
+                
+                <ellipse cx="200" cy="100" rx="60" ry="8" fill="#60A5FA" opacity="0.3" stroke="#2563EB" stroke-width="2" />
+                
+                <line x1="170" y1="20" x2="185" y2="95" stroke="#EF4444" stroke-width="2" />
+                <line x1="230" y1="20" x2="215" y2="95" stroke="#EF4444" stroke-width="2" />
+                
+                <circle cx="200" cy="400" r="4" fill="#DC2626" />
+                
+                <path d="M 185 105 L 200 400 L 215 105" fill="none" stroke="#EF4444" stroke-width="2" />
+                
+                <rect x="185" y="350" width="30" height="100" fill="#FCD34D" opacity="0.2" stroke="#F59E0B" stroke-width="2" stroke-dasharray="4 4" />
+                
+                <line x1="170" y1="350" x2="230" y2="350" stroke="#F59E0B" stroke-width="2" />
+                <line x1="170" y1="450" x2="230" y2="450" stroke="#F59E0B" stroke-width="2" />
+                
+                <line x1="250" y1="350" x2="250" y2="450" stroke="#F59E0B" stroke-width="2" />
+                <polygon points="250,350 247,356 253,356" fill="#F59E0B" />
+                <polygon points="250,450 247,444 253,444" fill="#F59E0B" />
+                
+                <text x="200" y="80" text-anchor="middle" font-size="14" fill="#1F2937" font-weight="600">Soczewka</text>
+                <text x="130" y="390" text-anchor="end" font-size="14" fill="#DC2626" font-weight="600">Ognisko</text>
+                
+                <line x1="200" y1="400" x2="170" y2="400" stroke="#2563EB" stroke-width="1" />
+                <text x="165" y="415" text-anchor="end" font-size="11" fill="#2563EB">d = ${results.spotDiameter} mm</text>
+                
+                <text x="270" y="395" text-anchor="start" font-size="13" fill="#F59E0B" font-weight="600">DOF:</text>
+                <text x="270" y="410" text-anchor="start" font-size="13" fill="#F59E0B" font-weight="600">${results.depthOfFocus} mm</text>
+                
+                <text x="200" y="30" text-anchor="middle" font-size="12" fill="#6B7280">↓ Wiązka wejściowa</text>
+                <text x="200" y="530" text-anchor="middle" font-size="12" fill="#6B7280">Materiał obrabiany ↓</text>
+            `;
+        }
+        
+        // Nasłuchiwanie zmian we wszystkich inputach
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', updateResults);
+        });
+        
+        // Pierwsza kalkulacja przy załadowaniu
+        updateResults();
+    </script>
+</body>
+</html>
