@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chronohit – muzyczna gra na osi czasu</title>
+<style>
+:root{
+  --bg:#12121c;--panel:#1d1d2e;--panel2:#26263b;--text:#f1f1f8;--muted:#9a9ab5;
+  --accent:#ff4f81;--ok:#2ecc71;--bad:#ff5252;--line:#3a3a55;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 20% 0%,#2a1a3f,var(--bg) 55%);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+main{max-width:980px;margin:0 auto;padding:16px}
+h1{margin:8px 0 2px;font-size:1.8rem;letter-spacing:.5px}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:0 0 18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+label{display:block;font-size:.85rem;color:var(--muted);margin:10px 0 4px}
+input[type=text],select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--text);font-size:1rem}
+.row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.row input{flex:1}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 16px;background:var(--panel2);
+  color:var(--text);border:1px solid var(--line)}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.big{padding:14px 22px;font-size:1.05rem}
+.chk{display:flex;gap:8px;align-items:flex-start;margin-top:12px;color:var(--text);font-size:.95rem}
+.chk input{margin-top:4px}
+.note{color:var(--muted);font-size:.82rem;line-height:1.4}
+.score{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:8px 12px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:.9rem}
+.chip.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.chip b{color:var(--accent)}
+.timeline{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.card{width:118px;min-height:128px;border-radius:12px;padding:10px 8px;text-align:center;
+  background:linear-gradient(160deg,hsl(var(--h) 65% 38%),hsl(var(--h) 55% 22%));
+  display:flex;flex-direction:column;justify-content:space-between;border:2px solid transparent}
+.card .y{font-size:1.7rem;font-weight:800}
+.card .t{font-size:.8rem;font-weight:600;line-height:1.2;word-break:break-word}
+.card .a{font-size:.72rem;opacity:.8;line-height:1.2;word-break:break-word}
+.card.new{border-color:var(--ok);box-shadow:0 0 16px var(--ok)}
+.slot{width:34px;min-height:128px;padding:0;border-style:dashed;font-size:1.3rem;color:var(--muted)}
+.slot:disabled{opacity:.25}
+.slot:hover:not(:disabled){background:var(--accent);color:#fff}
+.player{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.player h2{margin:0;font-size:1.25rem}
+.player .tok{color:var(--muted);font-size:.9rem}
+.audio{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.disc{width:54px;height:54px;border-radius:50%;background:conic-gradient(#333,#111,#333,#111,#333);
+  border:3px solid var(--accent);flex:none}
+.disc.spin{animation:spin 2s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog{flex:1;min-width:120px;height:8px;border-radius:5px;background:var(--panel2);overflow:hidden}
+.prog>div{height:100%;width:0;background:var(--accent)}
+.result{border-radius:12px;padding:14px;margin-top:12px;border:2px solid}
+.result.ok{border-color:var(--ok);background:rgba(46,204,113,.1)}
+.result.bad{border-color:var(--bad);background:rgba(255,82,82,.1)}
+.result h3{margin:0 0 6px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+a{color:var(--accent)}
+.win{text-align:center;padding:26px}
+.win h2{font-size:1.8rem;margin:0 0 8px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Chrono<span>hit</span></h1>
+  <p class="sub">Usłysz piosenkę, wstaw ją we właściwe miejsce na osi czasu. Kto pierwszy zbierze komplet kart – wygrywa.</p>
+  <div id="app"></div>
+</main>
+
+<script>
+/* ===== BAZA PIOSENEK: [tytuł, wykonawca, rok pierwszego wydania] =====
+   Rok jest brany Z TEJ LISTY, nie z iTunes (iTunes podaje często rok reedycji/składanki).
+   Chcesz dodać utwory – dopisz wiersze. Zweryfikuj rok, bo od niego zależy poprawność gry. */
+const SONGS = [
+ ["Hound Dog","Elvis Presley",1956],["Johnny B. Goode","Chuck Berry",1958],["Stand by Me","Ben E. King",1961],
+ ["Yesterday","The Beatles",1965],["(I Can't Get No) Satisfaction","The Rolling Stones",1965],
+ ["Like a Rolling Stone","Bob Dylan",1965],["Light My Fire","The Doors",1967],["Purple Haze","Jimi Hendrix",1967],
+ ["What a Wonderful World","Louis Armstrong",1967],["Hey Jude","The Beatles",1968],["Space Oddity","David Bowie",1969],
+ ["My Way","Frank Sinatra",1969],["Your Song","Elton John",1970],["Imagine","John Lennon",1971],
+ ["American Pie","Don McLean",1971],["Stairway to Heaven","Led Zeppelin",1971],["Smoke on the Water","Deep Purple",1972],
+ ["Superstition","Stevie Wonder",1972],["Walk on the Wild Side","Lou Reed",1972],["Bohemian Rhapsody","Queen",1975],
+ ["Dancing Queen","ABBA",1976],["Hotel California","Eagles",1976],["Go Your Own Way","Fleetwood Mac",1977],
+ ["Stayin' Alive","Bee Gees",1977],["I Feel Love","Donna Summer",1977],["Roxanne","The Police",1978],
+ ["Sultans of Swing","Dire Straits",1978],["Heart of Glass","Blondie",1979],["Another Brick in the Wall","Pink Floyd",1979],
+ ["Highway to Hell","AC/DC",1979],["Don't Stop Me Now","Queen",1979],["Back in Black","AC/DC",1980],
+ ["Could You Be Loved","Bob Marley & The Wailers",1980],["In the Air Tonight","Phil Collins",1981],
+ ["Tainted Love","Soft Cell",1981],["Thriller","Michael Jackson",1982],["Eye of the Tiger","Survivor",1982],
+ ["Africa","Toto",1982],["Rio","Duran Duran",1982],["Billie Jean","Michael Jackson",1983],
+ ["Sweet Dreams (Are Made of This)","Eurythmics",1983],["Girls Just Want to Have Fun","Cyndi Lauper",1983],
+ ["Autobiografia","Perfect",1983],["Mniej niż zero","Lady Pank",1983],["Purple Rain","Prince",1984],
+ ["Like a Virgin","Madonna",1984],["Last Christmas","Wham!",1984],["Take On Me","a-ha",1985],
+ ["Summer of '69","Bryan Adams",1985],["Money for Nothing","Dire Straits",1985],["Livin' on a Prayer","Bon Jovi",1986],
+ ["The Final Countdown","Europe",1986],["Sweet Child o' Mine","Guns N' Roses",1987],["With or Without You","U2",1987],
+ ["Never Gonna Give You Up","Rick Astley",1987],["I Wanna Dance with Somebody","Whitney Houston",1987],
+ ["Enjoy the Silence","Depeche Mode",1990],["Smells Like Teen Spirit","Nirvana",1991],["Enter Sandman","Metallica",1991],
+ ["Under the Bridge","Red Hot Chili Peppers",1992],["Creep","Radiohead",1992],["Basket Case","Green Day",1994],
+ ["Wonderwall","Oasis",1995],["Wannabe","Spice Girls",1996],["My Heart Will Go On","Celine Dion",1997],
+ ["Bitter Sweet Symphony","The Verve",1997],["Song 2","Blur",1997],["...Baby One More Time","Britney Spears",1998],
+ ["I Don't Want to Miss a Thing","Aerosmith",1998],["I Want It That Way","Backstreet Boys",1999],
+ ["Długość dźwięku samotności","Myslovitz",1999],["Prawy do lewego","Kayah & Goran Bregović",1999],
+ ["Yellow","Coldplay",2000],["One More Time","Daft Punk",2000],["In the End","Linkin Park",2001],
+ ["Lose Yourself","Eminem",2002],["Hey Ya!","Outkast",2003],["I Bet You Look Good on the Dancefloor","Arctic Monkeys",2005],
+ ["Rehab","Amy Winehouse",2006],["Crazy","Gnarls Barkley",2006],["Hips Don't Lie","Shakira",2006],
+ ["Umbrella","Rihanna",2007],["Poker Face","Lady Gaga",2008],["Sex on Fire","Kings of Leon",2008],
+ ["Rolling in the Deep","Adele",2010],["Firework","Katy Perry",2010],["Somebody That I Used to Know","Gotye",2011],
+ ["Radioactive","Imagine Dragons",2012],["Gangnam Style","PSY",2012],["Royals","Lorde",2013],
+ ["Get Lucky","Daft Punk",2013],["Happy","Pharrell Williams",2013],["Uptown Funk","Mark Ronson",2014],
+ ["Shake It Off","Taylor Swift",2014],["Shape of You","Ed Sheeran",2017],["Małomiasteczkowy","Dawid Podsiadło",2018],
+ ["Blinding Lights","The Weeknd",2019],["Bad Guy","Billie Eilish",2019],["Levitating","Dua Lipa",2020],
+ ["As It Was","Harry Styles",2022],["Flowers","Miley Cyrus",2023],
+ ["Dziwny jest ten świat","Czesław Niemen",1967]
+];
+
+/* ===== POMOCNICZE ===== */
+const $app = document.getElementById('app');
+const audio = new Audio();
+audio.preload = 'auto';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ł/g,'l')
+  .replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+const hue = y => Math.max(0, Math.min(300, (y-1950)/75*300));
+
+/* ===== POBIERANIE FRAGMENTU (iTunes Search API, 30 s, CORS dozwolony) ===== */
+const lookups = new Map();
+function getPreview(song){
+  if(!lookups.has(song)) lookups.set(song, fetchPreview(song));
+  return lookups.get(song);
+}
+async function fetchPreview(song){
+  const ctl = new AbortController();
+  const timer = setTimeout(()=>ctl.abort(), 7000);
+  try{
+    const q = encodeURIComponent(song.artist + ' ' + song.title);
+    const r = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=song&limit=15&country=PL`, {signal:ctl.signal});
+    if(!r.ok) return null;
+    const res = (await r.json()).results || [];
+    const core = norm(song.title.replace(/\(.*?\)/g,'')) || norm(song.title);
+    const art = norm(song.artist.split(/&|,|feat/i)[0]).replace(/^the /,'');
+    const bad = /live|remix|karaoke|cover|tribute|instrumental|acoustic|version|edit|remaster/i;
+    const matches = res.filter(x => x.previewUrl && norm(x.trackName||'').includes(core) && norm(x.artistName||'').includes(art));
+    const best = matches.find(x => !bad.test(x.trackName)) || matches[0];
+    return best ? best.previewUrl : null;
+  }catch(e){ return null; }
+  finally{ clearTimeout(timer); }
+}
+
+/* ===== STAN GRY ===== */
+let G = null;               // null = ekran startowy
+let setup = {names:['Gracz 1','Gracz 2'], target:7, useAudio:true};
+const cur = () => G.players[G.turn];
+
+function newGame(){
+  const deck = shuffle(SONGS.map(([title,artist,year])=>({title,artist,year})));
+  G = {
+    players: setup.names.map(n=>({name:n.trim()||'Gracz', cards:[deck.pop()], tokens:0})),
+    deck, target:setup.target, useAudio:setup.useAudio,
+    turn:0, phase:'ready', song:null, preview:null, bonusGiven:false, last:null, winner:null
+  };
+  prefetch();
+  render();
+}
+function prefetch(){ if(G.useAudio && G.deck.length) getPreview(G.deck[G.deck.length-1]); }
+
+function endByDeck(){
+  let best = 0;
+  G.players.forEach((p,i)=>{ if(p.cards.length > G.players[best].cards.length) best = i; });
+  G.winner = best; G.phase = 'over'; render();
+}
+
+async function playSong(){
+  const s = G.deck.pop();
+  if(!s) return endByDeck();
+  G.song = s; G.phase = 'loading'; G.bonusGiven = false; G.last = null;
+  render();
+  const url = G.useAudio ? await getPreview(s) : null;
+  G.preview = url; G.phase = 'listen';
+  if(url){ audio.src = url; audio.play().catch(()=>{}); }
+  render(); prefetch();
+}
+
+function place(i){
+  if(G.phase !== 'listen') return;
+  const tl = cur().cards, s = G.song;
+  const ok = (i===0 || tl[i-1].year <= s.year) && (i===tl.length || s.year <= tl[i].year);
+  if(ok) tl.splice(i,0,s);
+  G.last = {ok, song:s, index:i};
+  if(ok && tl.length >= G.target) G.winner = G.turn;
+  G.phase = 'reveal';
+  render();
+}
+
+function next(){
+  audio.pause();
+  if(G.winner !== null){ G.phase = 'over'; }
+  else { G.turn = (G.turn+1) % G.players.length; G.phase = 'ready'; }
+  G.song = null; render();
+}
+
+function buyCard(){
+  const p = cur();
+  if(p.tokens < 3 || G.phase !== 'ready') return;
+  const c = G.deck.pop();
+  if(!c) return endByDeck();
+  p.tokens -= 3;
+  let i = p.cards.findIndex(x => x.year > c.year);
+  if(i < 0) i = p.cards.length;
+  p.cards.splice(i,0,c);
+  G.last = {bought:true, song:c, index:i};
+  if(p.cards.length >= G.target) G.winner = G.turn;
+  if(G.winner !== null) G.phase = 'over';
+  render();
+}
+
+function skipSong(){
+  const p = cur();
+  if(p.tokens < 1 || G.phase !== 'listen') return;
+  p.tokens--; audio.pause(); playSong();
+}
+
+function giveBonus(){
+  if(G.bonusGiven) return;
+  cur().tokens++; G.bonusGiven = true; render();
+}
+
+/* ===== RENDER ===== */
+function cardHTML(c, isNew){
+  return `<div class="card${isNew?' new':''}" style="--h:${hue(c.year)}">
+    <div class="y">${c.year}</div><div class="t">${esc(c.title)}</div><div class="a">${esc(c.artist)}</div></div>`;
+}
+function ytLink(s){ return `https://www.youtube.com/results?search_query=${encodeURIComponent(s.artist+' '+s.title)}`; }
+
+function renderSetup(){
+  const rows = setup.names.map((n,i)=>`<div class="row">
+      <input type="text" data-name="${i}" value="${esc(n)}" maxlength="20" aria-label="Gracz ${i+1}">
+      ${setup.names.length>2?`<button data-act="rm" data-i="${i}" title="Usuń">✕</button>`:''}</div>`).join('');
+  $app.innerHTML = `<div class="panel">
+    <h2 style="margin-top:0">Nowa gra</h2>
+    ${rows}
+    <button data-act="add" ${setup.names.length>=6?'disabled':''}>+ Dodaj gracza</button>
+    <label for="target">Ile kart na osi czasu daje zwycięstwo</label>
+    <select id="target">${[5,7,10].map(v=>`<option ${v===setup.target?'selected':''}>${v}</option>`).join('')}</select>
+    <label class="chk"><input type="checkbox" id="useAudio" ${setup.useAudio?'checked':''}>
+      <span>Odtwarzaj 30-sekundowe fragmenty (iTunes Search API). Wymaga internetu. Gdy wyłączone albo gdy fragmentu brak,
+      gra pokazuje tytuł i wykonawcę z linkiem do YouTube – wtedy ktoś musi puścić utwór z własnego źródła.</span></label>
+    <p class="note">Zasady: na swojej osi czasu wstawiasz usłyszany utwór między karty (przycisk „+”). Trafiony przedział lat
+    (równe lata są dozwolone) = karta zostaje; pudło = karta przepada. Żetony (zasada honorowa): +1 gdy ktoś poda
+    poprawnie tytuł i wykonawcę; 1 żeton = pominięcie utworu, 3 żetony = darmowa karta.</p>
+    <div class="actions"><button class="primary big" data-act="start">Start</button></div>
+  </div>`;
+}
+
+function renderGame(){
+  const p = cur(), ph = G.phase, last = G.last;
+  const chips = G.players.map((q,i)=>`<div class="chip ${i===G.turn&&ph!=='over'?'on':''}">${esc(q.name)}:
+      <b>${q.cards.length}/${G.target}</b> · 🎫 ${q.tokens}</div>`).join('');
+
+  if(ph === 'over'){
+    const w = G.players[G.winner];
+    $app.innerHTML = `<div class="score">${chips}</div>
+      <div class="panel win"><h2>🏆 ${esc(w.name)} wygrywa!</h2>
+      <p class="note">Zebrane karty: ${w.cards.length}</p>
+      <div class="timeline" style="justify-content:center">${w.cards.map(c=>cardHTML(c)).join('')}</div>
+      <div class="actions" style="justify-content:center"><button class="primary big" data-act="menu">Nowa gra</button></div></div>`;
+    return;
+  }
+
+  const newIdx = (last && last.ok && ph==='reveal') ? last.index : (last && last.bought ? last.index : -1);
+  const canPlace = ph === 'listen';
+  let tl = '';
+  for(let i=0;i<=p.cards.length;i++){
+    tl += `<button class="slot" data-act="slot" data-i="${i}" ${canPlace?'':'disabled'} aria-label="Wstaw tutaj">+</button>`;
+    if(i<p.cards.length) tl += cardHTML(p.cards[i], i===newIdx);
+  }
+
+  let panel = '';
+  if(ph === 'ready'){
+    panel = `<p>Tura gracza <b>${esc(p.name)}</b>. Gotowy?</p>
+      <div class="actions"><button class="primary big" data-act="play">▶ Odtwórz piosenkę</button>
+      <button data-act="buy" ${p.tokens>=3?'':'disabled'}>Kup kartę (3 🎫)</button></div>`;
+    if(last && last.bought) panel += `<p class="note">Kupiona karta: ${esc(last.song.title)} – ${esc(last.song.artist)} (${last.song.year}).</p>`;
+  } else if(ph === 'loading'){
+    panel = `<p>Szukam fragmentu…</p>`;
+  } else if(ph === 'listen'){
+    const hasAudio = !!G.preview;
+    panel = hasAudio
+      ? `<div class="audio"><div class="disc" id="disc"></div>
+          <button id="pp" data-act="pp">⏸</button><button data-act="replay">↺</button>
+          <div class="prog"><div id="bar"></div></div></div>
+         <p class="note">Kliknij „+” w miejscu, w którym Twoim zdaniem pasuje ta piosenka.</p>`
+      : `<p><b>Brak fragmentu audio.</b> Puść utwór z własnego źródła:<br>
+         <b>${esc(G.song.title)}</b> – ${esc(G.song.artist)} · <a href="${ytLink(G.song)}" target="_blank" rel="noopener">YouTube</a><br>
+         <span class="note">Rok jest ukryty – zgadnij i wstaw kartę.</span></p>`;
+    panel += `<div class="actions"><button data-act="skip" ${p.tokens>=1?'':'disabled'}>Pomiń utwór (1 🎫)</button></div>`;
+  } else if(ph === 'reveal'){
+    const s = last.song;
+    panel = `<div class="result ${last.ok?'ok':'bad'}">
+        <h3>${last.ok?'✅ Trafione!':'❌ Pudło'} – ${s.year}</h3>
+        <div><b>${esc(s.title)}</b> – ${esc(s.artist)}</div>
+        ${last.ok?'':'<div class="note">Karta przepada.</div>'}
+      </div>
+      <div class="actions">
+        <button data-act="bonus" ${G.bonusGiven?'disabled':''}>🎫 Gracz podał tytuł i wykonawcę (+1)</button>
+        <button class="primary big" data-act="next">${G.winner!==null?'Zakończ grę':'Dalej →'}</button>
+      </div>`;
+  }
+
+  $app.innerHTML = `<div class="score">${chips}</div>
+    <div class="panel"><div class="player"><h2>${esc(p.name)}</h2>
+      <span class="tok">🎫 ${p.tokens} · cel: ${G.target} kart</span></div>
+      <div style="margin:12px 0" class="timeline">${tl}</div></div>
+    <div class="panel">${panel}</div>`;
+  updateAudioUI();
+}
+
+function render(){ G ? renderGame() : renderSetup(); }
+
+/* ===== AUDIO UI ===== */
+function updateAudioUI(){
+  const pp = document.getElementById('pp'), disc = document.getElementById('disc'), bar = document.getElementById('bar');
+  if(pp) pp.textContent = audio.paused ? '▶' : '⏸';
+  if(disc) disc.classList.toggle('spin', !audio.paused);
+  if(bar && audio.duration) bar.style.width = (audio.currentTime/audio.duration*100) + '%';
+}
+['timeupdate','play','pause','ended'].forEach(e => audio.addEventListener(e, updateAudioUI));
+
+/* ===== ZDARZENIA ===== */
+$app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b || b.disabled) return;
+  const i = +b.dataset.i;
+  switch(b.dataset.act){
+    case 'add': setup.names.push('Gracz ' + (setup.names.length+1)); render(); break;
+    case 'rm': setup.names.splice(i,1); render(); break;
+    case 'start': newGame(); break;
+    case 'menu': G = null; render(); break;
+    case 'play': playSong(); break;
+    case 'slot': place(i); break;
+    case 'next': next(); break;
+    case 'buy': buyCard(); break;
+    case 'skip': skipSong(); break;
+    case 'bonus': giveBonus(); break;
+    case 'pp': audio.paused ? audio.play() : audio.pause(); break;
+    case 'replay': audio.currentTime = 0; audio.play(); break;
+  }
+});
+$app.addEventListener('input', e => {
+  if(e.target.dataset.name !== undefined) setup.names[+e.target.dataset.name] = e.target.value;
+});
+$app.addEventListener('change', e => {
+  if(e.target.id === 'target') setup.target = +e.target.value;
+  if(e.target.id === 'useAudio') setup.useAudio = e.target.checked;
+});
+
+render();
+</script>
+</body>
+</html>
